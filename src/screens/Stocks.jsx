@@ -67,16 +67,17 @@ export default function Stocks() {
     setLoading(true)
 
     // First fetch live market data for key indices proxies
-    const marketTickers = ['SPY','QQQ','VIX','AAPL','NVDA','MSFT','TSLA','AMZN']
+    const marketTickers = ['SPY','QQQ','VV','AAPL','NVDA','XRP-USD','SOL-USD','MSFT']
     const liveResults = {}
-    await Promise.allSettled(marketTickers.slice(0,4).map(async t => {
+    await Promise.allSettled(marketTickers.slice(0,6).map(async t => {
       const d = await fetchLiveData(t)
       if(d?.hasLiveData) liveResults[t] = d
     }))
 
-    const liveContext = Object.entries(liveResults).map(([t,d])=>
-      `${t}: $${d.currentPrice?.toFixed(2)} (${d.changePercent?.toFixed(2)}%), RSI:${d.rsi?.toFixed(0)||'N/A'}, MACD:${d.macdSignal||'N/A'}`
-    ).join('\n')
+    const liveContext = Object.entries(liveResults).map(([t,d])=>{
+      const label = t==='SPY'?'S&P500 ETF (SPY)':t==='QQQ'?'NASDAQ ETF (QQQ)':t==='VV'?'Vanguard Large-Cap ETF (VV)':t==='XRP-USD'?'XRP Crypto':t==='SOL-USD'?'Solana Crypto':t
+      return `${label}: $${d.currentPrice?.toFixed(4)} (${d.changePercent?.toFixed(2)}% today), RSI:${d.rsi?.toFixed(0)||'N/A'}, MACD:${d.macdSignal||'N/A'}, Vol:${formatVolume(d.volume)}`
+    }).join('\n')
 
     const newsSentiment = Object.values(liveResults).flatMap(d=>d.newsSentiment||[]).slice(0,6)
     const newsContext = newsSentiment.map(n=>`- ${n.headline} [${n.sentiment}] (${n.source})`).join('\n')
@@ -143,7 +144,10 @@ Return ONLY valid JSON:
       setAnalysis(parsed); save(ANALYSIS_KEY,parsed)
       const now=new Date().toISOString(); setLastRun(now); save(LAST_RUN_KEY,now)
       // Fetch live prices for the picks
-      if(parsed.topPicks?.length) loadLivePrices(parsed.topPicks.map(p=>p.ticker))
+      // Load live prices for picks + always include VV, XRP, SOL
+      const extraTickers = ['VV','XRP','SOL']
+      const allTickers = [...new Set([...(parsed.topPicks?.map(p=>p.ticker)||[]), ...extraTickers])]
+      loadLivePrices(allTickers)
     } catch(e) {
       console.warn('Analysis error:',e)
     }
