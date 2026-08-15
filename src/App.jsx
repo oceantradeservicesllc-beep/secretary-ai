@@ -1,17 +1,17 @@
-import { StoreProvider, useStore } from './src/store/store.jsx'
-import { TradingProvider } from './src/store/tradingStore.jsx'
-import Dashboard from './src/screens/Dashboard.jsx'
-import AddTask from './src/screens/AddTask.jsx'
-import TaskDetail from './src/screens/TaskDetail.jsx'
-import Tasks, { CategoryDetail, PriorityDetail } from './src/screens/Tasks.jsx'
-import Projects, { ProjectDetail } from './src/screens/Projects.jsx'
-import Calendar from './src/screens/Calendar.jsx'
-import Review from './src/screens/Review.jsx'
-import Settings from './src/screens/Settings.jsx'
-import Stocks from './src/screens/Stocks.jsx'
-import Trading from './src/screens/Trading.jsx'
-import Performance from './src/screens/Performance.jsx'
-import { C } from './src/utils/helpers.js'
+import { StoreProvider, useStore } from './store/store.jsx'
+import { TradingProvider } from './store/tradingStore.jsx'
+import Dashboard from './screens/Dashboard.jsx'
+import AddTask from './screens/AddTask.jsx'
+import TaskDetail from './screens/TaskDetail.jsx'
+import Tasks, { CategoryDetail, PriorityDetail } from './screens/Tasks.jsx'
+import Projects, { ProjectDetail } from './screens/Projects.jsx'
+import Calendar from './screens/Calendar.jsx'
+import Review from './screens/Review.jsx'
+import Settings from './screens/Settings.jsx'
+import Stocks from './screens/Stocks.jsx'
+import Trading from './screens/Trading.jsx'
+import Performance from './screens/Performance.jsx'
+import { C } from './utils/helpers.js'
 
 const TABS = [
   { k:'dashboard', i:'⊞', l:'Home'    },
@@ -83,7 +83,7 @@ function Shell() {
       {/* Bottom nav */}
       <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:480,background:`${C.surface}f8`,backdropFilter:'blur(12px)',borderTop:`1px solid ${C.border}`,display:'flex',height:60,zIndex:100}}>
         {TABS.map((tab)=>{
-          const active=screen===tab.k
+          const active = screen===tab.k
           return(
             <button key={tab.k} onClick={()=>go(tab.k)} style={{flex:1,background:'none',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,color:active?C.accent:C.textMuted,fontFamily:'Inter,sans-serif'}}>
               <span style={{fontSize:18}}>{tab.i}</span>
