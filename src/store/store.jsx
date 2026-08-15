@@ -5,8 +5,8 @@ const Ctx = createContext(null)
 const load = (k,fb) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):fb } catch { return fb } }
 const save = (k,v)  => { try { localStorage.setItem(k,JSON.stringify(v)) } catch {} }
 
-const URL = 'https://pojhfovzxcjjyrbdyqyc.supabase.co/rest/v1'
-const KEY = 'sb_publishable_Os81VZl31s-E1PlNoSSIYA_ZEPoCs3k'
+const URL = 'https://meqsodoybcsgpmmccwpe.supabase.co'
+const KEY = 'sb_publishable_-KsN5vI4j3YYkw14ursHuw_HC5H0j_O'
 const H = { 'Content-Type':'application/json', 'apikey':KEY, 'Authorization':`Bearer ${KEY}` }
 
 async function dbGet(table) {
