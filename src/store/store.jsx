@@ -5,7 +5,7 @@ const Ctx = createContext(null)
 const load = (k,fb) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):fb } catch { return fb } }
 const save = (k,v)  => { try { localStorage.setItem(k,JSON.stringify(v)) } catch {} }
 
-const URL = 'https://meqsodoybcsgpmmccwpe.supabase.co'
+const URL = 'https://meqsodoybcsgpmmccwpe.supabase.co/rest/v1'
 const KEY = 'sb_publishable_-KsN5vI4j3YYkw14ursHuw_HC5H0j_O'
 const H = { 'Content-Type':'application/json', 'apikey':KEY, 'Authorization':`Bearer ${KEY}` }
 
@@ -182,7 +182,7 @@ export function StoreProvider({ children }) {
       const cd=ct.filter(t=>t.isCompleted).length
       byCat[cat]={total:ct.length,completed:cd,rate:ct.length?cd/ct.length:0}
     })
-    return {total:wt.length,completed:done,rate:wt.length?done/wt.length:0,byCat,overdue:overdueTasks,old7:tasks.filter(t=>isOld7(t))}
+    return{total:wt.length,completed:done,rate:wt.length?done/wt.length:0,byCat,overdue:overdueTasks,old7:tasks.filter(t=>isOld7(t))}
   }
 
   return (
