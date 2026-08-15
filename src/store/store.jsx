@@ -6,7 +6,7 @@ const load = (k,fb) => { try { const v=localStorage.getItem(k); return v?JSON.pa
 const save = (k,v)  => { try { localStorage.setItem(k,JSON.stringify(v)) } catch {} }
 
 const URL = 'https://meqsodoybcsgpmmccwpe.supabase.co'
-const KEY = 'sb_publishable_-KsN5vI4j3YYkw14ursHuw_HC5H0j_O'
+const KEY = 'sb_publishable_-KsN5vI4j3YYkw14ursHuw_HC5H0j_0'
 const H = { 'Content-Type':'application/json', 'apikey':KEY, 'Authorization':`Bearer ${KEY}` }
 
 async function dbGet(table) {
