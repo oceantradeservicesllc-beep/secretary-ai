@@ -157,3 +157,6 @@ export function formatVolume(vol) {
   if (vol >= 1e3) return `${(vol/1e3).toFixed(0)}K`
   return String(vol)
 }
+
+// ── Alias for backward compatibility with Stocks.jsx ─────────────────────────
+export const fetchLiveData = fetchLivePrice
