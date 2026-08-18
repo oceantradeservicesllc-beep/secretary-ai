@@ -169,6 +169,20 @@ export function TradingProvider({ children }) {
         }
         const next = [...prev]; next[idx] = updated
         dbUpsert('trading_positions', posToDB(updated))
+        // Deduct additional purchase cost from cash
+        if ((trade.side || 'BUY') === 'BUY') {
+          const cost = bp * q
+          setCashMap(prev => {
+            const newCash = parseFloat(Math.max((prev[trade.fundGroup] || 0) - cost, 0).toFixed(2))
+            dbUpsert('trading_cash', {
+              id: `cash_${trade.fundGroup.replace(/\s+/g,'_')}`,
+              fund_group: trade.fundGroup,
+              amount: newCash,
+              updated_at: new Date().toISOString(),
+            })
+            return { ...prev, [trade.fundGroup]: newCash }
+          })
+        }
         return next
       }
       const newPos = {
@@ -182,6 +196,21 @@ export function TradingProvider({ children }) {
       dbUpsert('trading_positions', posToDB(newPos))
       return [newPos, ...prev]
     })
+
+    // Deduct cost from cash for this fund group (BUY only)
+    if ((trade.side || 'BUY') === 'BUY') {
+      const cost = bp * q
+      setCashMap(prev => {
+        const newCash = parseFloat(Math.max((prev[trade.fundGroup] || 0) - cost, 0).toFixed(2))
+        dbUpsert('trading_cash', {
+          id: `cash_${trade.fundGroup.replace(/\s+/g,'_')}`,
+          fund_group: trade.fundGroup,
+          amount: newCash,
+          updated_at: new Date().toISOString(),
+        })
+        return { ...prev, [trade.fundGroup]: newCash }
+      })
+    }
 
     return { ticker: sym, stopLoss: finalSL, tradeDate: d }
   }, [])
@@ -207,6 +236,19 @@ export function TradingProvider({ children }) {
         daysHeld,  sellNotes: notes || '',
         isClosed:  true, closedAt: new Date().toISOString(),
       }
+
+      // Auto-add sale proceeds to cash for this fund group
+      const proceeds = sp * sq
+      setCashMap(prev => {
+        const newCash = parseFloat(((prev[pos.fundGroup] || 0) + proceeds).toFixed(2))
+        dbUpsert('trading_cash', {
+          id: `cash_${pos.fundGroup.replace(/\s+/g,'_')}`,
+          fund_group: pos.fundGroup,
+          amount: newCash,
+          updated_at: new Date().toISOString(),
+        })
+        return { ...prev, [pos.fundGroup]: newCash }
+      })
 
       setArchived(a => {
         const next = [record, ...a]
