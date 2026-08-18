@@ -283,7 +283,7 @@ function HabitModal({ habit, onClose }) {
   const [type,         setType]         = useState(habit.type||'good')
   const [logoEmoji,    setLogoEmoji]    = useState(habit.logoEmoji||'⭐')
   const [freqType,     setFreqType]     = useState(habit.frequencyType||'daily')
-  const [freqVal,      setFreqVal]      = useState(habit.frequencyValue||1)
+  const [freqVal,      setFreqVal]      = useState(parseInt(habit.frequencyValue)||2)
   const [notify,       setNotify]       = useState(habit.notify||false)
   const [notifyTime,   setNotifyTime]   = useState(habit.notifyTime||'08:00')
   const [showEmojis,   setShowEmojis]   = useState(false)
@@ -374,19 +374,50 @@ function HabitModal({ habit, onClose }) {
 
         {/* Frequency */}
         <div style={{marginBottom:12}}>
-          <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:6}}>Frequency / reminder</label>
+          <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:6}}>Frequency</label>
           <select value={freqType} onChange={e=>setFreqType(e.target.value)}
             style={{width:'100%',background:C.surface,border:`1px solid ${C.border}`,borderRadius:9,
-              padding:'9px 12px',color:C.text,fontSize:13,outline:'none',marginBottom:needsValue?8:0}}>
+              padding:'9px 12px',color:C.text,fontSize:13,outline:'none',marginBottom:needsValue?10:0}}>
             {FREQ_OPTIONS.map(f=><option key={f.k} value={f.k}>{f.label}</option>)}
           </select>
           {needsValue&&(
-            <div style={{display:'flex',alignItems:'center',gap:10}}>
-              <span style={{color:C.textSec,fontSize:12}}>Every</span>
-              <input type="number" min="2" max="365" value={freqVal} onChange={e=>setFreqVal(e.target.value)}
-                style={{width:70,background:C.surface,border:`1px solid ${C.border}`,borderRadius:9,
-                  padding:'8px 10px',color:C.text,fontSize:13,fontFamily:'Inter,sans-serif',outline:'none'}}/>
-              <span style={{color:C.textSec,fontSize:12}}>{freqType.includes('day')?'days':freqType.includes('week')?'weeks':'months'}</span>
+            <div>
+              <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:6}}>
+                Every how many {freqType.includes('day')?'days':freqType.includes('week')?'weeks':'months'}?
+              </label>
+              {/* Number picker row */}
+              <div style={{display:'flex',alignItems:'center',gap:0,background:C.surface,
+                border:`1px solid ${C.border}`,borderRadius:10,overflow:'hidden'}}>
+                <button onClick={()=>setFreqVal(v=>Math.max(2,parseInt(v||2)-1))}
+                  style={{width:46,height:44,border:'none',borderRight:`1px solid ${C.border}`,
+                    background:'transparent',color:C.text,fontSize:20,cursor:'pointer',flexShrink:0}}>
+                  −
+                </button>
+                <div style={{flex:1,textAlign:'center'}}>
+                  <span style={{color:C.text,fontSize:18,fontWeight:700}}>{freqVal}</span>
+                  <span style={{color:C.textMuted,fontSize:12,marginLeft:6}}>
+                    {freqType.includes('day')?'days':freqType.includes('week')?'weeks':'months'}
+                  </span>
+                </div>
+                <button onClick={()=>setFreqVal(v=>Math.min(365,parseInt(v||2)+1))}
+                  style={{width:46,height:44,border:'none',borderLeft:`1px solid ${C.border}`,
+                    background:'transparent',color:C.text,fontSize:20,cursor:'pointer',flexShrink:0}}>
+                  +
+                </button>
+              </div>
+              {/* Quick presets */}
+              <div style={{display:'flex',gap:5,marginTop:8,flexWrap:'wrap'}}>
+                {(freqType.includes('day')?[2,3,5,7,10,14]:freqType.includes('week')?[2,3,4,6,8]:[2,3,6]).map(n=>(
+                  <button key={n} onClick={()=>setFreqVal(n)}
+                    style={{border:`1px solid ${parseInt(freqVal)===n?C.accent:C.border}`,
+                      borderRadius:7,padding:'4px 10px',
+                      background:parseInt(freqVal)===n?C.accentSoft:'transparent',
+                      color:parseInt(freqVal)===n?C.accent:C.textMuted,
+                      fontSize:11,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                    {n}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
