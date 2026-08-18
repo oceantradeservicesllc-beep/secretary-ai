@@ -655,12 +655,14 @@ function AddTrade({ onDone }) {
 
 // ── Archive ───────────────────────────────────────────────────────────────────
 function Archive() {
-  const { archived } = useTrading()
-  const [filter,setFilter] = useState('all')
+  const { archived, deleteArchived } = useTrading()
+  const [filter,    setFilter]    = useState('all')
+  const [editModal, setEditModal] = useState(null)
+
   const shown = archived.filter(p=>{
-    if (filter==='wins')   return p.pnl>0
-    if (filter==='losses') return p.pnl<0
-    if (FUND_GROUPS.includes(filter)) return p.fundGroup===filter
+    if(filter==='wins')   return p.pnl>0
+    if(filter==='losses') return p.pnl<0
+    if(FUND_GROUPS.includes(filter)) return p.fundGroup===filter
     return true
   })
   const total  = archived.reduce((s,p)=>s+(p.pnl||0),0)
@@ -700,19 +702,30 @@ function Archive() {
             <div style={{fontSize:44,marginBottom:12}}>📁</div>
             <p style={{color:C.textSec}}>No closed trades yet.</p>
           </div>
-        : shown.map((p,i)=><ArchiveRow key={p.id||i} p={p}/>)
+        : shown.map((p,i)=>(
+            <ArchiveRow key={p.id||i} p={p}
+              onEdit={()=>setEditModal(p)}
+              onDelete={()=>{ if(window.confirm(`Delete ${p.ticker} trade? This cannot be undone.`)) deleteArchived(p.id) }}/>
+          ))
       }
+
+      {editModal&&(
+        <EditArchivedModal trade={editModal}
+          onClose={()=>setEditModal(null)}/>
+      )}
     </div>
   )
 }
 
-function ArchiveRow({ p }) {
+function ArchiveRow({ p, onEdit, onDelete }) {
   const [exp,setExp] = useState(false)
   const isWin = p.pnl>=0
   const tt    = TRADE_TYPES.find(t=>t.k===p.tradeType)||TRADE_TYPES[0]
   return (
-    <div style={{borderBottom:`1px solid ${C.border}`,paddingBottom:8,marginBottom:8}}>
-      <div onClick={()=>setExp(!exp)} style={{display:'flex',justifyContent:'space-between',cursor:'pointer'}}>
+    <div style={{background:C.card,border:`0.5px solid ${C.border}`,borderRadius:12,
+      padding:'10px 12px',marginBottom:8}}>
+      <div onClick={()=>setExp(!exp)} style={{display:'flex',justifyContent:'space-between',
+        cursor:'pointer',marginBottom:exp?8:0}}>
         <div>
           <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
             <span style={{color:C.text,fontSize:13,fontWeight:600}}>{p.ticker}</span>
@@ -733,12 +746,13 @@ function ArchiveRow({ p }) {
           <div style={{color:isWin?C.success:C.danger,fontSize:11}}>{fmtPct(p.pnlPct)}</div>
         </div>
       </div>
+
       {exp&&(
-        <div style={{marginTop:8,background:C.surface,borderRadius:9,padding:10}}>
+        <div style={{background:C.surface,borderRadius:9,padding:10,marginBottom:8}}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:6}}>
             {[['Avg buy',`$${p.avgPrice?.toFixed(2)}`],
-              ['Sold',   `$${p.sellPrice?.toFixed(2)}`],
-              ['Held',   `${p.daysHeld}d`],
+              ['Sold at',`$${p.sellPrice?.toFixed(2)}`],
+              ['Held',`${p.daysHeld}d`],
             ].map(([l,v])=>(
               <div key={l}>
                 <div style={{color:C.textMuted,fontSize:10}}>{l}</div>
@@ -746,19 +760,187 @@ function ArchiveRow({ p }) {
               </div>
             ))}
           </div>
-          <div style={{color:C.textMuted,fontSize:10}}>
+          <div style={{color:C.textMuted,fontSize:10,marginBottom:8}}>
             Bought {p.firstDate} · Sold {p.sellDate}
           </div>
           {!isWin&&p.pnlPct<=-5&&(
-            <div style={{color:C.danger,fontSize:10,marginTop:2}}>Stop loss triggered</div>
+            <div style={{color:C.danger,fontSize:10,marginBottom:8}}>Stop loss triggered</div>
           )}
+          {p.sellNotes&&<div style={{color:C.textSec,fontSize:11,fontStyle:'italic',marginBottom:8}}>{p.sellNotes}</div>}
         </div>
       )}
+
+      {/* Action buttons — always visible */}
+      <div style={{display:'flex',gap:8}}>
+        <button onClick={()=>setExp(!exp)}
+          style={{flex:1,background:C.surface,border:'none',borderRadius:8,
+            padding:'6px 8px',color:C.textSec,fontSize:11,cursor:'pointer',
+            fontFamily:'Inter,sans-serif'}}>
+          {exp?'▲ Less':'▼ Details'}
+        </button>
+        <button onClick={onEdit}
+          style={{flex:1,background:C.accentSoft,border:`1px solid rgba(108,99,255,.3)`,
+            borderRadius:8,padding:'6px 8px',color:C.accent,fontSize:11,fontWeight:600,
+            cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+          ✏️ Edit
+        </button>
+        <button onClick={onDelete}
+          style={{background:'rgba(255,94,94,.1)',border:`1px solid rgba(255,94,94,.2)`,
+            borderRadius:8,padding:'6px 10px',color:C.danger,fontSize:11,
+            cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+          🗑
+        </button>
+      </div>
     </div>
   )
 }
 
-// ── Sell Modal ────────────────────────────────────────────────────────────────
+// ── Edit Archived Trade Modal ─────────────────────────────────────────────────
+function EditArchivedModal({ trade, onClose }) {
+  const { editArchived } = useTrading()
+  const cr = isCryptoTicker(trade.ticker)
+
+  const [ticker,    setTicker]    = useState(trade.ticker)
+  const [assetType, setAssetType] = useState(trade.assetType||'Stock')
+  const [avgPrice,  setAvgPrice]  = useState(String(trade.avgPrice||''))
+  const [sellPrice, setSellPrice] = useState(String(trade.sellPrice||''))
+  const [sellQty,   setSellQty]   = useState(String(trade.sellQty||trade.totalQty||''))
+  const [fundGroup, setFundGroup] = useState(trade.fundGroup||'401k')
+  const [tradeType, setTradeType] = useState(trade.tradeType||'S')
+  const [firstDate, setFirstDate] = useState(trade.firstDate||'')
+  const [sellDate,  setSellDate]  = useState(trade.sellDate||'')
+  const [sellNotes, setSellNotes] = useState(trade.sellNotes||'')
+  const [err,       setErr]       = useState('')
+  const [saved,     setSaved]     = useState(false)
+
+  const pnl    = avgPrice&&sellPrice&&sellQty ? (parseFloat(sellPrice)-parseFloat(avgPrice))*parseFloat(sellQty) : null
+  const pnlPct = avgPrice&&sellPrice&&parseFloat(avgPrice)>0 ? ((parseFloat(sellPrice)-parseFloat(avgPrice))/parseFloat(avgPrice))*100 : null
+
+  function handleSave() {
+    if(!ticker.trim()||!avgPrice||!sellPrice||!sellQty) {
+      setErr('Ticker, buy price, sell price and qty are required.'); return
+    }
+    editArchived(trade.id, { ticker, assetType, avgPrice, sellPrice, sellQty, fundGroup, tradeType, firstDate, sellDate, sellNotes })
+    setSaved(true); setTimeout(onClose, 900)
+  }
+
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',
+      zIndex:1000,display:'flex',alignItems:'flex-end'}}>
+      <div onClick={e=>e.stopPropagation()}
+        style={{background:C.card,borderRadius:'20px 20px 0 0',width:'100%',
+          padding:20,maxHeight:'92vh',overflowY:'auto'}}>
+
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+          <h3 style={{color:C.text,fontSize:18,fontWeight:700}}>Edit trade — {trade.ticker}</h3>
+          <button onClick={onClose} style={{background:C.surface,border:'none',borderRadius:8,
+            width:30,height:30,cursor:'pointer',color:C.textSec,fontSize:18}}>✕</button>
+        </div>
+
+        <MF label="Ticker" value={ticker} onChange={v=>setTicker(v.toUpperCase())} placeholder="AAPL"/>
+
+        <div style={{marginBottom:12}}>
+          <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:4}}>Asset type</label>
+          <div style={{display:'flex',gap:5}}>
+            {ASSET_TYPES.map(t=>(
+              <button key={t} onClick={()=>setAssetType(t)}
+                style={{flex:1,border:`1px solid ${assetType===t?C.accent:C.border}`,borderRadius:7,
+                  padding:'6px 4px',background:assetType===t?C.accentSoft:'transparent',
+                  color:assetType===t?C.accent:C.textSec,fontSize:11,cursor:'pointer',
+                  fontFamily:'Inter,sans-serif'}}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:0}}>
+          <MF label="Avg buy price" value={avgPrice}  onChange={setAvgPrice}  type="number" placeholder="0.00"/>
+          <MF label="Sell price"    value={sellPrice}  onChange={setSellPrice} type="number" placeholder="0.00"/>
+          <MF label="Qty sold"      value={sellQty}    onChange={setSellQty}   type="number" placeholder="10"/>
+          <div style={{marginBottom:10}}>
+            <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:4}}>P&L preview</label>
+            <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:9,
+              padding:'9px 12px',fontSize:13,
+              color:pnl!=null?(pnl>=0?C.success:C.danger):C.textMuted,fontWeight:600}}>
+              {pnl!=null?`${pnl>=0?'+':'-'}$${Math.abs(pnl).toFixed(2)} (${pnlPct>=0?'+':''}${pnlPct?.toFixed(2)}%)`:'—'}
+            </div>
+          </div>
+        </div>
+
+        <div style={{marginBottom:12}}>
+          <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:4}}>Account</label>
+          <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+            {FUND_GROUPS.map(fg=>(
+              <button key={fg} onClick={()=>setFundGroup(fg)}
+                style={{border:`1px solid ${fundGroup===fg?FUND_COLORS[fg]:C.border}`,borderRadius:7,
+                  padding:'5px 10px',background:fundGroup===fg?FUND_COLORS[fg]+'18':'transparent',
+                  color:fundGroup===fg?FUND_COLORS[fg]:C.textSec,fontSize:11,
+                  fontWeight:fundGroup===fg?600:400,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                {fg}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{marginBottom:12}}>
+          <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:4}}>Trade horizon</label>
+          <div style={{display:'flex',gap:8}}>
+            {TRADE_TYPES.map(tt=>(
+              <button key={tt.k} onClick={()=>setTradeType(tt.k)}
+                style={{flex:1,border:`1px solid ${tradeType===tt.k?tt.color:C.border}`,borderRadius:8,
+                  padding:'7px 4px',background:tradeType===tt.k?tt.color+'18':'transparent',
+                  cursor:'pointer',fontFamily:'Inter,sans-serif',textAlign:'center'}}>
+                <div style={{color:tt.color,fontSize:12,fontWeight:700}}>{tt.k}</div>
+                <div style={{color:tradeType===tt.k?tt.color:C.textMuted,fontSize:9}}>{tt.label}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
+          <div>
+            <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:4}}>Buy date</label>
+            <input type="date" value={firstDate} onChange={e=>setFirstDate(e.target.value)}
+              style={{width:'100%',background:C.surface,border:`1px solid ${C.border}`,borderRadius:9,
+                padding:'8px 10px',color:C.text,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+          </div>
+          <div>
+            <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:4}}>Sell date</label>
+            <input type="date" value={sellDate} onChange={e=>setSellDate(e.target.value)}
+              style={{width:'100%',background:C.surface,border:`1px solid ${C.border}`,borderRadius:9,
+                padding:'8px 10px',color:C.text,fontSize:12,fontFamily:'Inter,sans-serif',outline:'none'}}/>
+          </div>
+        </div>
+
+        <div style={{marginBottom:14}}>
+          <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:4}}>Notes</label>
+          <textarea value={sellNotes} onChange={e=>setSellNotes(e.target.value)} rows={2}
+            style={{width:'100%',background:C.surface,border:`1px solid ${C.border}`,borderRadius:9,
+              padding:'8px 12px',color:C.text,fontSize:12,fontFamily:'Inter,sans-serif',
+              resize:'none',outline:'none'}}/>
+        </div>
+
+        {err&&<div style={{background:'rgba(255,94,94,.08)',borderRadius:8,padding:'8px 12px',
+          color:C.danger,fontSize:12,marginBottom:10}}>{err}</div>}
+
+        <div style={{display:'flex',gap:10}}>
+          <button onClick={onClose}
+            style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,
+              padding:12,color:C.textSec,fontSize:13,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+            Cancel
+          </button>
+          <button onClick={handleSave}
+            style={{flex:2,background:saved?C.success:C.accent,border:'none',borderRadius:12,
+              padding:12,color:'#fff',fontSize:13,fontWeight:600,cursor:'pointer',
+              fontFamily:'Inter,sans-serif',transition:'background .3s'}}>
+            {saved?'✅ Saved!':'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 function SellModal({ pos, priceData, onClose, onConfirm }) {
   const cr = isCryptoTicker(pos.ticker)
   const [sp,setSp] = useState(
