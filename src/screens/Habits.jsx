@@ -385,12 +385,42 @@ function HabitModal({ habit, onClose }) {
 
         {/* Frequency */}
         <div style={{marginBottom:12}}>
-          <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:6}}>Frequency</label>
-          <select value={freqType} onChange={e=>setFreqType(e.target.value)}
-            style={{width:'100%',background:C.surface,border:`1px solid ${C.border}`,borderRadius:9,
-              padding:'9px 12px',color:C.text,fontSize:13,outline:'none',marginBottom:needsValue?10:0}}>
-            {FREQ_OPTIONS.map(f=><option key={f.k} value={f.k}>{f.label}</option>)}
-          </select>
+          <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:8}}>Frequency</label>
+          {/* Row 1: None / Daily / Weekly / Monthly */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
+            {[
+              {k:'none',    label:'No frequency'},
+              {k:'daily',   label:'Every day'},
+              {k:'weekly',  label:'Every week'},
+              {k:'monthly', label:'Every month'},
+            ].map(f=>(
+              <button key={f.k} onClick={()=>setFreqType(f.k)}
+                style={{border:`1px solid ${freqType===f.k?C.accent:C.border}`,borderRadius:9,
+                  padding:'9px 8px',background:freqType===f.k?C.accentSoft:'transparent',
+                  color:freqType===f.k?C.accent:C.textSec,fontSize:12,
+                  fontWeight:freqType===f.k?600:400,cursor:'pointer',fontFamily:'Inter,sans-serif',
+                  textAlign:'center'}}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {/* Row 2: Custom X days/weeks/months */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,marginBottom:needsValue?10:0}}>
+            {[
+              {k:'every_x_days',   label:'Custom days'},
+              {k:'every_x_weeks',  label:'Custom weeks'},
+              {k:'every_x_months', label:'Custom months'},
+            ].map(f=>(
+              <button key={f.k} onClick={()=>setFreqType(f.k)}
+                style={{border:`1px solid ${freqType===f.k?C.accent:C.border}`,borderRadius:9,
+                  padding:'8px 4px',background:freqType===f.k?C.accentSoft:'transparent',
+                  color:freqType===f.k?C.accent:C.textSec,fontSize:11,
+                  fontWeight:freqType===f.k?600:400,cursor:'pointer',fontFamily:'Inter,sans-serif',
+                  textAlign:'center'}}>
+                {f.label}
+              </button>
+            ))}
+          </div>
           {freqType==='none'&&(
             <div style={{background:'rgba(108,99,255,.07)',border:`1px solid rgba(108,99,255,.2)`,
               borderRadius:8,padding:'8px 12px',marginTop:8}}>
