@@ -25,7 +25,7 @@ export default function CalendarNew() {
   const month = selDateObj.getMonth()
 
   const daysInMonth = new Date(year, month+1, 0).getDate()
-  const firstDay    = new Date(year, month, 1).getDay()
+  const firstDay    = (new Date(year, month, 1).getDay() + 6) % 7  // 0=Mon
   const monthEvents = getEventsForMonth(year, month)
 
   // Tasks with deadlines this month
@@ -65,7 +65,7 @@ export default function CalendarNew() {
             {new Date(year,month).toLocaleDateString('en-US',{month:'long',year:'numeric'})}
           </div>
           <div style={{display:'flex',gap:4,justifyContent:'center',marginTop:4}}>
-            {CUSTODY_OPTIONS.slice(0,3).map(c=>(
+            {CUSTODY_OPTIONS.filter(c=>c.k==='me'||c.k==='laura').map(c=>(
               <div key={c.k} style={{display:'flex',alignItems:'center',gap:3}}>
                 <div style={{width:8,height:8,borderRadius:'50%',background:c.color}}/>
                 <span style={{color:C.textMuted,fontSize:9}}>{c.label}</span>
@@ -78,7 +78,7 @@ export default function CalendarNew() {
 
       {/* Day headers */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',padding:'8px 8px 0',gap:2}}>
-        {['S','M','T','W','T','F','S'].map((d,i)=>(
+        {['M','T','W','T','F','S','S'].map((d,i)=>(
           <div key={i} style={{textAlign:'center',color:C.textMuted,fontSize:11,fontWeight:600,padding:'4px 0'}}>{d}</div>
         ))}
       </div>
@@ -142,7 +142,7 @@ export default function CalendarNew() {
                 <button onClick={()=>{
                   const uid = ()=>Math.random().toString(36).slice(2)+Date.now().toString(36)
                   addEvent({...copied, id:undefined, date:selDate, status:'scheduled', title:copied.title})
-                  setCopied(null)
+                  // Do NOT clear copied — allow pasting multiple times
                 }}
                   style={{background:'rgba(82,201,134,.15)',border:'1px solid rgba(82,201,134,.3)',
                     borderRadius:10,padding:'7px 12px',color:'#52C986',fontSize:12,fontWeight:600,
@@ -340,13 +340,13 @@ function CustodyPicker({ date }) {
 
   return (
     <div style={{display:'flex',gap:6}}>
-      {CUSTODY_OPTIONS.map(opt=>(
+      {CUSTODY_OPTIONS.filter(c=>c.k==='me'||c.k==='laura').map(opt=>(
         <button key={opt.k} onClick={()=>setCustody(opt)}
           style={{flex:1,border:`2px solid ${curOpt?.k===opt.k?opt.color:C.border}`,
-            borderRadius:8,padding:'6px 4px',
+            borderRadius:10,padding:'10px 4px',
             background:curOpt?.k===opt.k?opt.color+'20':'transparent',
             color:curOpt?.k===opt.k?opt.color:C.textMuted,
-            fontSize:10,fontWeight:curOpt?.k===opt.k?700:400,
+            fontSize:13,fontWeight:curOpt?.k===opt.k?700:400,
             cursor:'pointer',fontFamily:'Inter,sans-serif',textAlign:'center'}}>
           {opt.label}
         </button>
@@ -476,12 +476,12 @@ function AddEventModal({ preset, onClose }) {
         <div style={{marginBottom:12}}>
           <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:4}}>Kids (optional)</label>
           <div style={{display:'flex',gap:5}}>
-            {CUSTODY_OPTIONS.map(opt=>(
+            {CUSTODY_OPTIONS.filter(c=>c.k==='me'||c.k==='laura').map(opt=>(
               <button key={opt.k} onClick={()=>setCustody(custody===opt.k?'':opt.k)}
-                style={{flex:1,border:`1px solid ${custody===opt.k?opt.color:C.border}`,borderRadius:7,
-                  padding:'5px 2px',background:custody===opt.k?opt.color+'15':'transparent',
-                  color:custody===opt.k?opt.color:C.textMuted,fontSize:10,cursor:'pointer',
-                  fontFamily:'Inter,sans-serif'}}>
+                style={{flex:1,border:`2px solid ${custody===opt.k?opt.color:C.border}`,borderRadius:9,
+                  padding:'9px 4px',background:custody===opt.k?opt.color+'18':'transparent',
+                  color:custody===opt.k?opt.color:C.textMuted,fontSize:13,
+                  fontWeight:custody===opt.k?700:400,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
                 {opt.label}
               </button>
             ))}
