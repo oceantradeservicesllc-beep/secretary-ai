@@ -15,7 +15,8 @@ export default function CalendarNew() {
   const [selDate,    setSelDate]    = useState(TODAY)
   const [showModal,  setShowModal]  = useState(false)
   const [editEvent,  setEditEvent]  = useState(null)
-  const { getEventsForDate, getEventsForMonth, confirmHabitEvent, deleteEvent } = useCalendar()
+  const [copied,     setCopied]     = useState(null)  // event being copied
+  const { getEventsForDate, getEventsForMonth, confirmHabitEvent, deleteEvent, addEvent } = useCalendar()
   const { habits, isDueOnDate, getLogForDate } = useHabits()
   const { tasks } = useStore()
 
@@ -136,12 +137,47 @@ export default function CalendarNew() {
                 {dayHabits.filter(h=>getLogForDate(h.id,selDate)?.status==='done').length}/{dayHabits.length} habits done
               </div>
             </div>
-            <button onClick={()=>{setEditEvent({date:selDate});setShowModal(true)}}
-              style={{background:C.accent,border:'none',borderRadius:10,padding:'7px 14px',
-                color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
-              + Add
-            </button>
+            <div style={{display:'flex',gap:6}}>
+              {copied&&(
+                <button onClick={()=>{
+                  const uid = ()=>Math.random().toString(36).slice(2)+Date.now().toString(36)
+                  addEvent({...copied, id:undefined, date:selDate, status:'scheduled', title:copied.title})
+                  setCopied(null)
+                }}
+                  style={{background:'rgba(82,201,134,.15)',border:'1px solid rgba(82,201,134,.3)',
+                    borderRadius:10,padding:'7px 12px',color:'#52C986',fontSize:12,fontWeight:600,
+                    cursor:'pointer',fontFamily:'Inter,sans-serif',display:'flex',alignItems:'center',gap:4}}>
+                  📋 Paste
+                </button>
+              )}
+              {copied&&(
+                <button onClick={()=>setCopied(null)}
+                  style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,
+                    padding:'7px 8px',color:C.textMuted,fontSize:12,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                  ✕
+                </button>
+              )}
+              <button onClick={()=>{setEditEvent({date:selDate});setShowModal(true)}}
+                style={{background:C.accent,border:'none',borderRadius:10,padding:'7px 14px',
+                  color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>
+                + Add
+              </button>
+            </div>
           </div>
+
+          {/* Copied event banner */}
+          {copied&&(
+            <div style={{background:'rgba(82,201,134,.08)',border:'1px solid rgba(82,201,134,.25)',
+              borderRadius:10,padding:'8px 12px',marginBottom:10,
+              display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div>
+                <div style={{color:'#52C986',fontSize:12,fontWeight:600}}>📋 Copied: {copied.title}</div>
+                <div style={{color:'#52C986',fontSize:10,opacity:.8}}>Tap "Paste" to add to this day</div>
+              </div>
+              <button onClick={()=>setCopied(null)}
+                style={{background:'none',border:'none',color:'#52C986',fontSize:16,cursor:'pointer'}}>✕</button>
+            </div>
+          )}
 
           {/* Custody picker for this day */}
           <div style={{marginBottom:12}}>
@@ -207,8 +243,20 @@ export default function CalendarNew() {
                         </button>
                       </div>
                     )}
-                    <button onClick={()=>{ if(window.confirm('Delete this event?')) deleteEvent(ev.id) }}
-                      style={{background:'none',border:'none',color:C.textMuted,fontSize:14,cursor:'pointer'}}>🗑</button>
+                    <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                      <button onClick={()=>{
+                        const {id:_id,createdAt:_ca,...rest}=ev
+                        setCopied(rest)
+                      }}
+                        title="Copy event"
+                        style={{background:C.accentSoft,border:'none',borderRadius:6,
+                          padding:'4px 7px',color:C.accent,fontSize:11,cursor:'pointer',
+                          fontFamily:'Inter,sans-serif'}}>
+                        📋
+                      </button>
+                      <button onClick={()=>{ if(window.confirm('Delete this event?')) deleteEvent(ev.id) }}
+                        style={{background:'none',border:'none',color:C.textMuted,fontSize:14,cursor:'pointer'}}>🗑</button>
+                    </div>
                   </div>
                 )
               })}
