@@ -27,12 +27,13 @@ async function dbDelete(table, id) {
 
 export const HABIT_EMOJIS = ['⭐','💪','🏃','🧘','📚','💧','🥗','😴','🚭','🍺','🎯','✍️','🧹','💊','🧠','❤️','🌿','☀️','🎵','📵','🚶','🏋️','🛁','🥤','🍎','☕','🧘‍♂️','💤','🎨','🤸']
 export const FREQ_OPTIONS = [
-  {k:'daily',    label:'Every day'},
-  {k:'every_x_days', label:'Every X days'},
-  {k:'weekly',   label:'Every week'},
+  {k:'none',          label:'No frequency (manual only)'},
+  {k:'daily',         label:'Every day'},
+  {k:'every_x_days',  label:'Every X days'},
+  {k:'weekly',        label:'Every week'},
   {k:'every_x_weeks', label:'Every X weeks'},
-  {k:'monthly',  label:'Every month'},
-  {k:'every_x_months', label:'Every X months'},
+  {k:'monthly',       label:'Every month'},
+  {k:'every_x_months',label:'Every X months'},
 ]
 
 function habitToDB(h) {
@@ -153,16 +154,17 @@ export function HabitProvider({ children }) {
   // Check if habit is due on a given date
   const isDueOnDate = useCallback((habit, date)=>{
     const ft = habit.frequencyType
+    if(ft==='none') return false  // manual only — never auto-scheduled
     const fv = habit.frequencyValue||1
     const d  = new Date(date)
     const created = new Date(habit.createdAt)
     const daysDiff = Math.floor((d-created)/86400000)
-    if(ft==='daily')           return true
-    if(ft==='every_x_days')    return daysDiff%fv===0
-    if(ft==='weekly')          return d.getDay()===created.getDay()
-    if(ft==='every_x_weeks')   return Math.floor(daysDiff/7)%fv===0
-    if(ft==='monthly')         return d.getDate()===created.getDate()
-    if(ft==='every_x_months')  return d.getDate()===created.getDate()&&(d.getMonth()-created.getMonth())%fv===0
+    if(ft==='daily')            return true
+    if(ft==='every_x_days')     return daysDiff%fv===0
+    if(ft==='weekly')           return d.getDay()===created.getDay()
+    if(ft==='every_x_weeks')    return Math.floor(daysDiff/7)%fv===0
+    if(ft==='monthly')          return d.getDate()===created.getDate()
+    if(ft==='every_x_months')   return d.getDate()===created.getDate()&&(d.getMonth()-created.getMonth())%fv===0
     return false
   },[])
 
