@@ -66,6 +66,17 @@ function TodayView({ onAdd }) {
         </div>
       </div>
 
+      {/* Manual-only habits — always show as loggable */}
+      {(() => {
+        const manualHabits = active.filter(h=>h.frequencyType==='none')
+        if(!manualHabits.length) return null
+        return (
+          <div style={{marginBottom:16}}>
+            <div style={{color:C.textMuted,fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8,textTransform:'uppercase'}}>Manual habits</div>
+            {manualHabits.map(h=><HabitCheckRow key={h.id} habit={h} date={TODAY} onLog={logHabit} getLog={getLogForDate}/>)}
+          </div>
+        )
+      })()}
       {due.length===0 ? (
         <div style={{textAlign:'center',padding:'40px 20px'}}>
           <div style={{fontSize:44,marginBottom:12}}>🎯</div>
@@ -300,7 +311,7 @@ function HabitModal({ habit, onClose }) {
     setSaved(true); setTimeout(onClose, 900)
   }
 
-  const needsValue = freqType.includes('every_x')
+  const needsValue = freqType.includes('every_x') && freqType!=='none'
 
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',
@@ -380,6 +391,14 @@ function HabitModal({ habit, onClose }) {
               padding:'9px 12px',color:C.text,fontSize:13,outline:'none',marginBottom:needsValue?10:0}}>
             {FREQ_OPTIONS.map(f=><option key={f.k} value={f.k}>{f.label}</option>)}
           </select>
+          {freqType==='none'&&(
+            <div style={{background:'rgba(108,99,255,.07)',border:`1px solid rgba(108,99,255,.2)`,
+              borderRadius:8,padding:'8px 12px',marginTop:8}}>
+              <span style={{color:C.accent,fontSize:12}}>
+                ℹ️ This habit won't appear automatically. Log it manually anytime from the Today tab.
+              </span>
+            </div>
+          )}
           {needsValue&&(
             <div>
               <label style={{color:C.textSec,fontSize:11,display:'block',marginBottom:6}}>
