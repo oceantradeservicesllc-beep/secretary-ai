@@ -271,6 +271,30 @@ export function TradingProvider({ children }) {
     dbDelete('trading_positions', id)
   }, [])
 
+  // ── Edit existing position ────────────────────────────────────────────────
+  const editPosition = useCallback((id, updates) => {
+    setPositions(prev => {
+      const next = prev.map(p => {
+        if (p.id !== id) return p
+        const updated = {
+          ...p,
+          ticker:    updates.ticker    || p.ticker,
+          assetType: updates.assetType || p.assetType,
+          avgPrice:  updates.avgPrice  != null ? parseFloat(updates.avgPrice)  : p.avgPrice,
+          totalQty:  updates.totalQty  != null ? parseFloat(updates.totalQty)  : p.totalQty,
+          fundGroup: updates.fundGroup || p.fundGroup,
+          tradeType: updates.tradeType || p.tradeType,
+          notes:     updates.notes     != null ? updates.notes : p.notes,
+          stopLoss:  updates.stopLoss  != null ? parseFloat(updates.stopLoss)  : parseFloat((parseFloat(updates.avgPrice||p.avgPrice)*0.95).toFixed(6)),
+          updatedAt: new Date().toISOString(),
+        }
+        dbUpsert('trading_positions', posToDB(updated))
+        return updated
+      })
+      return next
+    })
+  }, [])
+
   // ── Cash — synced to Supabase ─────────────────────────────────────────────
   const setCash = useCallback((fg, amt) => {
     const amount = parseFloat(amt) || 0
@@ -324,7 +348,7 @@ export function TradingProvider({ children }) {
   return (
     <Ctx.Provider value={{
       positions, archived, cashMap, syncing,
-      addTrade, closeTrade, deletePosition, setCash,
+      addTrade, closeTrade, deletePosition, editPosition, setCash,
       calcPerf, parseQuick, syncFromCloud,
     }}>
       {children}
