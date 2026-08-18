@@ -271,6 +271,39 @@ export function TradingProvider({ children }) {
     dbDelete('trading_positions', id)
   }, [])
 
+  // ── Delete archived trade ─────────────────────────────────────────────────
+  const deleteArchived = useCallback((id) => {
+    setArchived(prev => prev.filter(a => a.id !== id))
+    dbDelete('trading_archived', id)
+  }, [])
+
+  // ── Edit archived trade ───────────────────────────────────────────────────
+  const editArchived = useCallback((id, updates) => {
+    setArchived(prev => prev.map(a => {
+      if (a.id !== id) return a
+      const pnl    = (parseFloat(updates.sellPrice||a.sellPrice) - parseFloat(updates.avgPrice||a.avgPrice)) * parseFloat(updates.sellQty||a.sellQty)
+      const pnlPct = ((parseFloat(updates.sellPrice||a.sellPrice) - parseFloat(updates.avgPrice||a.avgPrice)) / parseFloat(updates.avgPrice||a.avgPrice)) * 100
+      const updated = {
+        ...a,
+        ticker:    (updates.ticker||a.ticker).toUpperCase(),
+        fundGroup: updates.fundGroup || a.fundGroup,
+        tradeType: updates.tradeType || a.tradeType,
+        assetType: updates.assetType || a.assetType,
+        avgPrice:  parseFloat(updates.avgPrice||a.avgPrice),
+        sellPrice: parseFloat(updates.sellPrice||a.sellPrice),
+        sellQty:   parseFloat(updates.sellQty||a.sellQty),
+        totalQty:  parseFloat(updates.sellQty||a.totalQty),
+        sellDate:  updates.sellDate || a.sellDate,
+        firstDate: updates.firstDate || a.firstDate,
+        pnl:       parseFloat(pnl.toFixed(2)),
+        pnlPct:    parseFloat(pnlPct.toFixed(2)),
+        sellNotes: updates.sellNotes !== undefined ? updates.sellNotes : a.sellNotes,
+      }
+      dbUpsert('trading_archived', archToDB(updated))
+      return updated
+    }))
+  }, [])
+
   // ── Edit existing position ────────────────────────────────────────────────
   const editPosition = useCallback((id, updates) => {
     setPositions(prev => {
@@ -348,7 +381,7 @@ export function TradingProvider({ children }) {
   return (
     <Ctx.Provider value={{
       positions, archived, cashMap, syncing,
-      addTrade, closeTrade, deletePosition, editPosition, setCash,
+      addTrade, closeTrade, deletePosition, editPosition, deleteArchived, editArchived, setCash,
       calcPerf, parseQuick, syncFromCloud,
     }}>
       {children}
