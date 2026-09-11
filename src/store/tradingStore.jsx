@@ -1,19 +1,15 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { authHeaders, SUPA_REST_URL } from '../lib/auth.js'
 
 const Ctx = createContext(null)
 
-const SUPA_URL = 'https://meqsodoybcsgpmmccwpe.supabase.co/rest/v1'
-const SUPA_KEY = 'sb_publishable_-KsN5vI4j3YYkw14ursHuw_HC5H0j_O'
-const H = {
-  'Content-Type': 'application/json',
-  'apikey': SUPA_KEY,
-  'Authorization': `Bearer ${SUPA_KEY}`,
-}
+const SUPA_URL = SUPA_REST_URL
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
 async function dbGet(table) {
   try {
-    const r = await fetch(`${SUPA_URL}/${table}?order=created_at.desc`, { headers: H })
+    const headers = await authHeaders()
+    const r = await fetch(`${SUPA_URL}/${table}?order=created_at.desc`, { headers })
     if (!r.ok) return []
     return await r.json()
   } catch { return [] }
@@ -21,9 +17,10 @@ async function dbGet(table) {
 
 async function dbUpsert(table, data) {
   try {
+    const headers = await authHeaders({'Prefer':'resolution=merge-duplicates'})
     await fetch(`${SUPA_URL}/${table}`, {
       method: 'POST',
-      headers: { ...H, 'Prefer': 'resolution=merge-duplicates' },
+      headers,
       body: JSON.stringify(data),
     })
   } catch(e) { console.warn('upsert failed', table, e) }
@@ -31,7 +28,8 @@ async function dbUpsert(table, data) {
 
 async function dbDelete(table, id) {
   try {
-    await fetch(`${SUPA_URL}/${table}?id=eq.${id}`, { method: 'DELETE', headers: H })
+    const headers = await authHeaders()
+    await fetch(`${SUPA_URL}/${table}?id=eq.${id}`, { method: 'DELETE', headers })
   } catch(e) { console.warn('delete failed', table, e) }
 }
 

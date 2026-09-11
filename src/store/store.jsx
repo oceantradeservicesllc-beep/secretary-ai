@@ -1,28 +1,30 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { uid, makeSamples, isOverdue, isOld7, CATEGORIES } from '../utils/helpers.js'
+import { authHeaders, SUPA_REST_URL } from '../lib/auth.js'
 
 const Ctx = createContext(null)
 const load = (k,fb) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):fb } catch { return fb } }
 const save = (k,v)  => { try { localStorage.setItem(k,JSON.stringify(v)) } catch {} }
 
-const URL = 'https://meqsodoybcsgpmmccwpe.supabase.co/rest/v1'
-const KEY = 'sb_publishable_-KsN5vI4j3YYkw14ursHuw_HC5H0j_O'
-const H = { 'Content-Type':'application/json', 'apikey':KEY, 'Authorization':`Bearer ${KEY}` }
+const URL = SUPA_REST_URL
 
 async function dbGet(table) {
-  const r = await fetch(`${URL}/${table}?order=created_at.desc`, { headers:H })
+  const headers = await authHeaders()
+  const r = await fetch(`${URL}/${table}?order=created_at.desc`, { headers })
   if (!r.ok) throw new Error(`fetch ${table} failed`)
   return r.json()
 }
 async function dbUpsert(table, data) {
+  const headers = await authHeaders({'Prefer':'resolution=merge-duplicates'})
   await fetch(`${URL}/${table}`, {
     method:'POST',
-    headers:{ ...H, 'Prefer':'resolution=merge-duplicates' },
+    headers,
     body:JSON.stringify(data),
   })
 }
 async function dbDelete(table, id) {
-  await fetch(`${URL}/${table}?id=eq.${id}`, { method:'DELETE', headers:H })
+  const headers = await authHeaders()
+  await fetch(`${URL}/${table}?id=eq.${id}`, { method:'DELETE', headers })
 }
 
 function taskToDB(t) {

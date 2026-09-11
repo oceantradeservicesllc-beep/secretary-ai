@@ -1,15 +1,9 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
+import { authHeaders, SUPA_REST_URL } from '../lib/auth.js'
 
 const Ctx = createContext(null)
 
-const SUPA_URL = 'https://meqsodoybcsgpmmccwpe.supabase.co/rest/v1'
-const SUPA_KEY = 'sb_publishable_-KsN5vI4j3YYkw14ursHuw_HC5H0j_O'
-const H = {
-  'Content-Type':  'application/json',
-  'apikey':        SUPA_KEY,
-  'Authorization': `Bearer ${SUPA_KEY}`,
-  'Prefer':        'resolution=merge-duplicates,return=minimal',
-}
+const SUPA_URL = SUPA_REST_URL
 
 const LKEY = 'sai_cal_events_v2'
 const uid  = () => Math.random().toString(36).slice(2) + Date.now().toString(36)
@@ -24,9 +18,10 @@ const persist = (v) => {
 // ── DB helpers ────────────────────────────────────────────────────────────────
 async function dbFetchAll() {
   try {
+    const headers = await authHeaders()
     const r = await fetch(
       `${SUPA_URL}/calendar_events?order=event_date.asc&limit=5000`,
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` } }
+      { headers }
     )
     if (!r.ok) { console.warn('calendar_events fetch failed:', r.status, await r.text()); return null }
     return await r.json()
@@ -35,9 +30,10 @@ async function dbFetchAll() {
 
 async function dbUpsert(ev) {
   try {
+    const headers = await authHeaders({'Prefer':'resolution=merge-duplicates,return=minimal'})
     const r = await fetch(`${SUPA_URL}/calendar_events`, {
       method:  'POST',
-      headers: H,
+      headers,
       body:    JSON.stringify(ev),
     })
     if (!r.ok) console.warn('calendar upsert failed:', r.status, await r.text())
@@ -46,9 +42,10 @@ async function dbUpsert(ev) {
 
 async function dbDelete(id) {
   try {
+    const headers = await authHeaders()
     const r = await fetch(`${SUPA_URL}/calendar_events?id=eq.${id}`, {
       method:  'DELETE',
-      headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` },
+      headers,
     })
     if (!r.ok) console.warn('calendar delete failed:', r.status)
   } catch(e) { console.warn('calendar delete error:', e) }

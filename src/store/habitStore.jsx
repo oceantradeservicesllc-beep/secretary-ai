@@ -1,9 +1,8 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { authHeaders, SUPA_REST_URL } from '../lib/auth.js'
 
 const Ctx = createContext(null)
-const SUPA_URL = 'https://meqsodoybcsgpmmccwpe.supabase.co/rest/v1'
-const SUPA_KEY = 'sb_publishable_-KsN5vI4j3YYkw14ursHuw_HC5H0j_O'
-const H = { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}` }
+const SUPA_URL = SUPA_REST_URL
 
 const load = (k,fb) => { try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch{return fb} }
 const save = (k,v)  => { try{localStorage.setItem(k,JSON.stringify(v))}catch{} }
@@ -11,18 +10,23 @@ const uid  = () => Math.random().toString(36).slice(2)+Date.now().toString(36)
 
 async function dbGet(table, query='') {
   try {
-    const r = await fetch(`${SUPA_URL}/${table}?order=created_at.desc${query}`,{headers:H})
+    const headers = await authHeaders()
+    const r = await fetch(`${SUPA_URL}/${table}?order=created_at.desc${query}`,{headers})
     if(!r.ok) return []
     return r.json()
   } catch { return [] }
 }
 async function dbUpsert(table, data) {
   try {
-    await fetch(`${SUPA_URL}/${table}`,{method:'POST',headers:{...H,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify(data)})
+    const headers = await authHeaders({'Prefer':'resolution=merge-duplicates'})
+    await fetch(`${SUPA_URL}/${table}`,{method:'POST',headers,body:JSON.stringify(data)})
   } catch {}
 }
 async function dbDelete(table, id) {
-  try { await fetch(`${SUPA_URL}/${table}?id=eq.${id}`,{method:'DELETE',headers:H}) } catch {}
+  try {
+    const headers = await authHeaders()
+    await fetch(`${SUPA_URL}/${table}?id=eq.${id}`,{method:'DELETE',headers})
+  } catch {}
 }
 
 export const HABIT_EMOJIS = ['⭐','💪','🏃','🧘','📚','💧','🥗','😴','🚭','🍺','🎯','✍️','🧹','💊','🧠','❤️','🌿','☀️','🎵','📵','🚶','🏋️','🛁','🥤','🍎','☕','🧘‍♂️','💤','🎨','🤸']
@@ -105,13 +109,11 @@ export function HabitProvider({ children }) {
   },[])
 
   const deleteHabit = useCallback((id)=>{
-    // Keep logs but mark habit as inactive (so calendar history preserved)
     setHabits(prev=>prev.map(h=>h.id===id?{...h,isActive:false,deletedAt:new Date().toISOString()}:h))
     dbUpsert('habits',{id,is_active:false,updated_at:new Date().toISOString()})
   },[])
 
   const logHabit = useCallback((habitId, date, status='done', note='')=>{
-    // Prevent duplicate for same day
     const exists = logs.find(l=>l.habitId===habitId&&l.date===date)
     if(exists) {
       const updated = {...exists, status, note}
@@ -132,7 +134,6 @@ export function HabitProvider({ children }) {
     return logs.filter(l=>l.date>=startDate&&l.date<=endDate)
   },[logs])
 
-  // Stats for dashboard — last 7 days
   const getWeekStats = useCallback(()=>{
     const dates = []
     for(let i=6;i>=0;i--) {
@@ -151,10 +152,9 @@ export function HabitProvider({ children }) {
     return { goodDone, badDone, goodTotal:goodHabits.length*7, badTotal:badHabits.length*7, dates }
   },[habits,logs])
 
-  // Check if habit is due on a given date
   const isDueOnDate = useCallback((habit, date)=>{
     const ft = habit.frequencyType
-    if(ft==='none') return false  // manual only — never auto-scheduled
+    if(ft==='none') return false
     const fv = habit.frequencyValue||1
     const d  = new Date(date)
     const created = new Date(habit.createdAt)

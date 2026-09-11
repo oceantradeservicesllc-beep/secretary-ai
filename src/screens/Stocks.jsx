@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { C } from '../utils/helpers.js'
 import { Spin } from '../components/UI.jsx'
 
-const SUPA_KEY = 'sb_publishable_-KsN5vI4j3YYkw14ursHuw_HC5H0j_O'
+const SUPA_KEY = 'sb_publishable_FAmXHtAz2P_KeOp9rlDPr9_rDtR8V4X'
 
 // Always-show market tickers
 const MARKET_TICKERS = [

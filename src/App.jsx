@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { StoreProvider, useStore } from './store/store.jsx'
 import { TradingProvider } from './store/tradingStore.jsx'
 import { HabitProvider } from './store/habitStore.jsx'
@@ -15,6 +16,8 @@ import Performance from './screens/Performance.jsx'
 import Habits from './screens/Habits.jsx'
 import Calendar from './screens/Calendar.jsx'
 import { C } from './utils/helpers.js'
+import Login from './components/Login.jsx'
+import { isLoggedIn } from './lib/auth.js'
 
 const TABS = [
   { k:'dashboard', i:'⊞', l:'Home'    },
@@ -122,6 +125,12 @@ function Shell() {
 }
 
 export default function App() {
+  const [authed, setAuthed] = useState(() => isLoggedIn())
+
+  if (!authed) {
+    return <Login onSuccess={() => setAuthed(true)} />
+  }
+
   return (
     <StoreProvider>
       <HabitProvider>
